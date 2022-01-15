@@ -2119,6 +2119,20 @@ process_tab_grab (MetaDisplay *display,
       return FALSE; /* end grab */
     }
 
+  gboolean raise_windows;
+  raise_windows = meta_prefs_get_alt_tab_raise_windows ();
+  if (raise_windows)
+    {
+      Window target_xwindow;
+      MetaWindow *target_window;
+
+      target_xwindow =
+        (Window) meta_ui_tab_popup_get_selected (screen->tab_popup);
+      target_window =
+        meta_display_lookup_x_window (display, target_xwindow);
+      meta_window_raise (target_window);
+    }
+
   /* don't care about other releases, but eat them, don't end grab */
   if (event->type == KeyRelease)
     return TRUE;
