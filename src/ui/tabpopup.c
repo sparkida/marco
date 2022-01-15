@@ -38,8 +38,8 @@
 #include <gdk/gdkx.h>
 #include <math.h>
 
-#define OUTSIDE_SELECT_RECT 8
-#define INSIDE_SELECT_RECT 8
+#define OUTSIDE_SELECT_RECT 2
+#define INSIDE_SELECT_RECT 2
 
 typedef struct _TabEntry TabEntry;
 
@@ -921,7 +921,7 @@ struct _MetaSelectWorkspaceClass
 static GType meta_select_workspace_get_type (void) G_GNUC_CONST;
 
 #define SELECT_OUTLINE_WIDTH 2
-#define MINI_WORKSPACE_SCREEN_FRACTION 0.33
+#define MINI_WORKSPACE_SCREEN_FRACTION 0.50
 
 static GtkWidget*
 selectable_workspace_new (MetaWorkspace *workspace, int entry_count)
@@ -945,7 +945,8 @@ selectable_workspace_new (MetaWorkspace *workspace, int entry_count)
   {
     mini_workspace_ratio = (double) workspace->screen->rect.height / (double) workspace->screen->rect.width;
     mini_workspace_width = (int) ((double) current->rect.width * MINI_WORKSPACE_SCREEN_FRACTION / entry_count);
-    mini_workspace_height = (int) ((double) mini_workspace_width * mini_workspace_ratio);
+    // TODO see if I can change this in CSS
+    mini_workspace_height = (int) ((double) mini_workspace_width * mini_workspace_ratio + 40);
   }
 
   /* account for select rect */
