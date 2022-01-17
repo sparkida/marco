@@ -118,6 +118,43 @@ outline_window_draw (GtkWidget *widget,
   return FALSE;
 }
 
+static gboolean
+highlight_selected_window(GtkWidget *widget,
+                          cairo_t   *cr,
+                          gpointer  data)
+{
+  GdkRGBA black = { 0.0, 0.0, 0.0, 1.0 };
+  GdkRGBA green = { 0.0, 1.0, 0.5, 0.5 };
+  MetaTabPopup *popup;
+  TabEntry *te;
+
+  popup = data;
+
+  if (popup->border & BORDER_OUTLINE_WORKSPACE ||
+        popup->current_selected_entry == NULL)
+  {
+    return FALSE;
+  }
+
+  te = popup->current_selected_entry;
+
+  gdk_cairo_set_source_rgba (cr, &black);
+  cairo_paint (cr);
+
+  cairo_set_source_rgba(cr, &green;
+  cairo_set_line_width(cr, 5.0);
+
+  cairo_rectangle (cr,
+                   0.5, 0.5,
+                   te->rect.width - 1,
+                   te->rect.height - 1);
+
+  cairo_stroke(cr);
+
+  return FALSE;
+  
+}
+
 static void
 popup_window_screen_changed (GtkWidget *widget,
                              GdkScreen *old_screen G_GNUC_UNUSED,
@@ -269,7 +306,7 @@ meta_ui_tab_popup_new (const MetaTabEntry *entries,
       gtk_widget_realize (popup->outline_window);
 
       g_signal_connect (G_OBJECT (popup->outline_window), "draw",
-                        G_CALLBACK (outline_window_draw), popup);
+                        G_CALLBACK (highlight_selected_window), popup);
 
       gtk_widget_show (popup->outline_window);
     }
