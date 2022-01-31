@@ -141,7 +141,7 @@ highlight_selected_window(GtkWidget *widget,
   gdk_cairo_set_source_rgba (cr, &black);
   cairo_paint (cr);
 
-  cairo_set_source_rgba(cr, &green;
+  gdk_cairo_set_source_rgba (cr, &green);
   cairo_set_line_width(cr, 5.0);
 
   cairo_rectangle (cr,
