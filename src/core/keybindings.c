@@ -2073,7 +2073,7 @@ process_tab_grab (MetaDisplay *display,
   gboolean popup_not_showing;
   enum { NEXT, PREV, UP, DOWN, LEFT, RIGHT } direction;
   gboolean key_used;
-  Window      prev_xwindow;
+  MetaTabEntryKey prev_xwindow;
   MetaWindow *prev_window;
 
   if (screen != display->grab_screen)
@@ -2085,13 +2085,16 @@ process_tab_grab (MetaDisplay *display,
       end_keyboard_grab (display, event->xkey.keycode))
     {
       /* We're done, move to the new window. */
-      Window target_xwindow;
+      MetaTabEntryKey target_xwindow;
       MetaWindow *target_window;
 
-      target_xwindow =
-        (Window) meta_ui_tab_popup_get_selected (screen->tab_popup);
-      target_window =
-        meta_display_lookup_x_window (display, target_xwindow);
+      target_xwindow = meta_ui_tab_popup_get_selected (screen->tab_popup);
+
+      if (target_xwindow != None)
+        {
+          target_window =
+            meta_display_lookup_x_window (display, (Window) target_xwindow);
+        }
 
       meta_topic (META_DEBUG_KEYBINDINGS,
                   "Ending tab operation, primary modifier released\n");
@@ -2125,14 +2128,17 @@ process_tab_grab (MetaDisplay *display,
   raise_windows = meta_prefs_get_alt_tab_raise_windows ();
   if (raise_windows)
     {
-      Window target_xwindow;
+      MetaTabEntryKey target_xwindow;
       MetaWindow *target_window;
 
-      target_xwindow =
-        (Window) meta_ui_tab_popup_get_selected (screen->tab_popup);
-      target_window =
-        meta_display_lookup_x_window (display, target_xwindow);
-      meta_window_raise (target_window);
+      target_xwindow = meta_ui_tab_popup_get_selected (screen->tab_popup);
+
+      if (target_xwindow != None)
+        {
+          target_window =
+            meta_display_lookup_x_window (display, (Window) target_xwindow);
+          meta_window_raise (target_window);
+        }
     }
 
   /* don't care about other releases, but eat them, don't end grab */
@@ -2143,8 +2149,11 @@ process_tab_grab (MetaDisplay *display,
   if (is_modifier (display, event->xkey.keycode))
     return TRUE;
 
-  prev_xwindow = (Window) meta_ui_tab_popup_get_selected (screen->tab_popup);
-  prev_window  = meta_display_lookup_x_window (display, prev_xwindow);
+  prev_xwindow = meta_ui_tab_popup_get_selected (screen->tab_popup);
+  if (prev_xwindow != None)
+    {
+      prev_window = meta_display_lookup_x_window (display, (Window) prev_xwindow);
+    }
   action = display_get_keybinding_action (display,
                                           keysym,
                                           event->xkey.keycode,
@@ -2309,16 +2318,19 @@ process_tab_grab (MetaDisplay *display,
           /* We can't actually change window focus, due to the grab.
            * but raise the window.
            */
-          Window target_xwindow;
+          MetaTabEntryKey target_xwindow;
           MetaWindow *target_window;
 
           meta_stack_set_positions (screen->stack,
                                     display->grab_old_window_stacking);
 
           target_xwindow =
-            (Window) meta_ui_tab_popup_get_selected (screen->tab_popup);
-          target_window =
-            meta_display_lookup_x_window (display, target_xwindow);
+            meta_ui_tab_popup_get_selected (screen->tab_popup);
+          if (target_xwindow != None)
+            {
+              target_window =
+                meta_display_lookup_x_window (display, (Window) target_xwindow);
+            }
 
           if (prev_window && prev_window->tab_unminimized)
             {
