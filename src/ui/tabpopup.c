@@ -84,6 +84,7 @@ outline_window_draw (GtkWidget *widget,
                      gpointer   data)
 {
   GdkRGBA black = { 0.0, 0.0, 0.0, 1.0 };
+  GdkRGBA green = { 0.0, 1.0, 0.5, 0.5 };
   MetaTabPopup *popup;
   TabEntry *te;
 
@@ -97,23 +98,21 @@ outline_window_draw (GtkWidget *widget,
 
   te = popup->current_selected_entry;
 
-  gdk_cairo_set_source_rgba (cr, &black);
-  cairo_paint (cr);
+  gint border_width = 5;
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  gdk_cairo_set_source_rgba(cr, &black);
+  cairo_paint(cr);
 
-  cairo_set_line_width (cr, 1.0);
-  cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
+  cairo_move_to(cr, 1, 1);
+  cairo_line_to(cr, te->rect.width - 1, 1);
+  cairo_line_to(cr, te->rect.width - 1, te->rect.height - 1);
+  cairo_line_to(cr, 1, te->rect.height - 1);
+  cairo_line_to(cr, 1, 1);
 
-  cairo_rectangle (cr,
-                   0.5, 0.5,
-                   te->rect.width - 1,
-                   te->rect.height - 1);
-  cairo_stroke (cr);
-
-  cairo_rectangle (cr,
-                   te->inner_rect.x - 0.5, te->inner_rect.y - 0.5,
-                   te->inner_rect.width + 1,
-                   te->inner_rect.height + 1);
-  cairo_stroke (cr);
+  gdk_cairo_set_source_rgba(cr, &green);
+  cairo_set_line_width(cr, border_width);
+  cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+  cairo_stroke(cr);
 
   return FALSE;
 }
