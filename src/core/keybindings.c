@@ -2091,17 +2091,17 @@ process_tab_grab (MetaDisplay *display,
       target_window =
         meta_display_lookup_x_window (display, (Window) key);
 
-      meta_topic (META_DEBUG_KEYBINDINGS,
+      meta_topic (META_DEBUG_X,
                   "Ending tab operation, primary modifier released\n");
 
       if (target_window)
         {
           target_window->tab_unminimized = FALSE;
 
-          meta_topic (META_DEBUG_KEYBINDINGS,
+          meta_topic (META_DEBUG_X,
                       "Activating target window\n");
 
-          meta_topic (META_DEBUG_FOCUS, "Activating %s due to tab popup "
+          meta_topic (META_DEBUG_X, "Activating %s due to tab popup "
                       "selection and turning mouse_mode off\n",
                       target_window->desc);
           display->mouse_mode = FALSE;
@@ -2109,7 +2109,7 @@ process_tab_grab (MetaDisplay *display,
           if (!target_window->on_all_workspaces)
             meta_workspace_activate (target_window->workspace, event->xkey.time);
 
-          meta_topic (META_DEBUG_KEYBINDINGS,
+          meta_topic (META_DEBUG_X,
                       "Ending grab early so we can focus the target window\n");
           meta_display_end_grab_op (display, event->xkey.time);
 
@@ -2117,20 +2117,6 @@ process_tab_grab (MetaDisplay *display,
         }
 
       return FALSE; /* end grab */
-    }
-
-  gboolean raise_windows;
-  raise_windows = meta_prefs_get_alt_tab_raise_windows ();
-  if (raise_windows)
-    {
-      Window target_xwindow;
-      MetaWindow *target_window;
-
-      target_xwindow =
-        (Window) meta_ui_tab_popup_get_selected (screen->tab_popup);
-      target_window =
-        meta_display_lookup_x_window (display, target_xwindow);
-      meta_window_raise (target_window);
     }
 
   /* don't care about other releases, but eat them, don't end grab */
@@ -2142,12 +2128,15 @@ process_tab_grab (MetaDisplay *display,
     return TRUE;
 
   key = meta_ui_tab_popup_get_selected (screen->tab_popup);
-  prev_window  = meta_display_lookup_x_window (display, (Window) key);
+  prev_window = meta_display_lookup_x_window (display, (Window) key);
   action = display_get_keybinding_action (display,
                                           keysym,
                                           event->xkey.keycode,
                                           display->grab_mask);
 
+  gboolean raise_windows;
+  raise_windows = meta_prefs_get_alt_tab_raise_windows ();
+  gboolean escaped_alt_tab = FALSE;
   /* Cancel when alt-Escape is pressed during using alt-Tab, and vice
    * versa.
    */
@@ -2157,14 +2146,26 @@ process_tab_grab (MetaDisplay *display,
     case META_KEYBINDING_ACTION_CYCLE_WINDOWS:
     case META_KEYBINDING_ACTION_CYCLE_PANELS_BACKWARD:
     case META_KEYBINDING_ACTION_CYCLE_WINDOWS_BACKWARD:
+      meta_topic (META_DEBUG_X, "CYCLE action\n");
       /* CYCLE_* are traditionally Escape-based actions,
        * and should cancel traditionally Tab-based ones.
        */
        switch (display->grab_op)
         {
+        case META_GRAB_OP_KEYBOARD_TABBING_NORMAL:
+          // handle escape pressed when using raise_windows with alt+tab
+          // in order to restore selected window in stack
+          if (raise_windows)
+          {
+            meta_topic (META_DEBUG_X, "CYCLE action -> escaped alt tab\n");
+            escaped_alt_tab = TRUE;
+            break;
+          }
+          return FALSE;
         case META_GRAB_OP_KEYBOARD_ESCAPING_NORMAL:
         case META_GRAB_OP_KEYBOARD_ESCAPING_NORMAL_ALL_WORKSPACES:
         case META_GRAB_OP_KEYBOARD_ESCAPING_DOCK:
+          meta_topic (META_DEBUG_X, "CYCLE action -> escape\n");
          /* carry on */
           break;
         default:
@@ -2177,6 +2178,7 @@ process_tab_grab (MetaDisplay *display,
     case META_KEYBINDING_ACTION_SWITCH_PANELS_BACKWARD:
     case META_KEYBINDING_ACTION_SWITCH_WINDOWS_BACKWARD:
     case META_KEYBINDING_ACTION_SWITCH_WINDOWS_ALL_BACKWARD:
+      meta_topic (META_DEBUG_X, "SWITCH action\n");
       /* SWITCH_* are traditionally Tab-based actions,
        * and should cancel traditionally Escape-based ones.
        */
@@ -2185,9 +2187,11 @@ process_tab_grab (MetaDisplay *display,
         case META_GRAB_OP_KEYBOARD_TABBING_NORMAL:
         case META_GRAB_OP_KEYBOARD_TABBING_NORMAL_ALL_WORKSPACES:
         case META_GRAB_OP_KEYBOARD_TABBING_DOCK:
+          meta_topic (META_DEBUG_X, "SWITCH action -> tabbing\n");
           /* carry on */
           break;
         default:
+          meta_topic (META_DEBUG_X, "SWITCH action -> tabbing-false\n");
           /* Also, we must re-lower and re-minimize whatever window
            * we'd previously raised and unminimized.
            */
@@ -2195,6 +2199,7 @@ process_tab_grab (MetaDisplay *display,
                                     screen->display->grab_old_window_stacking);
           if (prev_window && prev_window->tab_unminimized)
             {
+              meta_topic (META_DEBUG_X, "SWITCH action -> restoring stack\n");
               meta_window_minimize (prev_window);
               prev_window->tab_unminimized = FALSE;
             }
@@ -2237,7 +2242,7 @@ process_tab_grab (MetaDisplay *display,
     case META_KEYBINDING_ACTION_CYCLE_WINDOWS:
     case META_KEYBINDING_ACTION_CYCLE_GROUP:
       popup_not_showing = TRUE;
-      key_used = TRUE;
+      key_used = !escaped_alt_tab;
       break;
     case META_KEYBINDING_ACTION_CYCLE_PANELS_BACKWARD:
     case META_KEYBINDING_ACTION_CYCLE_WINDOWS_BACKWARD:
@@ -2287,7 +2292,7 @@ process_tab_grab (MetaDisplay *display,
 
   if (key_used)
     {
-      meta_topic (META_DEBUG_KEYBINDINGS,
+      meta_topic (META_DEBUG_X,
                   "Key pressed, moving tab focus in popup\n");
 
       if ((event->xkey.state & ShiftMask) && (direction == NEXT || direction == PREV))
@@ -2302,8 +2307,9 @@ process_tab_grab (MetaDisplay *display,
       else if (direction == UP)
         meta_ui_tab_popup_up (screen->tab_popup);
 
-      if (popup_not_showing)
+      if (popup_not_showing || raise_windows)
         {
+          meta_topic (META_DEBUG_X, "Popup not showing\n");
           /* We can't actually change window focus, due to the grab.
            * but raise the window.
            */
@@ -2333,10 +2339,10 @@ process_tab_grab (MetaDisplay *display,
   else
     {
       /* end grab */
-      meta_topic (META_DEBUG_KEYBINDINGS,
+      meta_topic (META_DEBUG_X,
                   "Ending tabbing/cycling, uninteresting key pressed\n");
 
-      meta_topic (META_DEBUG_KEYBINDINGS,
+      meta_topic (META_DEBUG_X,
                   "Syncing to old stack positions.\n");
       meta_stack_set_positions (screen->stack,
                                 screen->display->grab_old_window_stacking);

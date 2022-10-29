@@ -226,7 +226,7 @@ meta_debug_spew_real (const char *format, ...)
   out = logfile ? logfile : stderr;
 
   if (no_prefix == 0)
-    utf8_fputs (_("Window manager: "), out);
+    return;
   utf8_fputs (str, out);
 
   fflush (out);
@@ -255,7 +255,7 @@ meta_verbose_real (const char *format, ...)
   out = logfile ? logfile : stderr;
 
   if (no_prefix == 0)
-    utf8_fputs ("Window manager: ", out);
+    return;
   utf8_fputs (str, out);
 
   fflush (out);
@@ -314,6 +314,8 @@ topic_name (MetaDebugTopic topic)
       return "COMPOSITOR";
     case META_DEBUG_EDGE_RESISTANCE:
       return "EDGE_RESISTANCE";
+    case META_DEBUG_X:
+      return "X";
     }
 
   return "WM";
@@ -331,6 +333,12 @@ meta_topic_real (MetaDebugTopic topic,
   FILE *out;
 
   g_return_if_fail (format != NULL);
+
+  //int enabled_topic = topic & (META_DEBUG_FOCUS | META_DEBUG_KEYBINDINGS | META_DEBUG_STACK);
+
+  if (topic != META_DEBUG_X) {
+    return;
+  }
 
   if (!is_verbose)
     return;

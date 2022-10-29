@@ -3286,12 +3286,12 @@ meta_spew_event (MetaDisplay *display,
                                sev->x, sev->y, sev->width, sev->height,
                                sev->shaped);
           }
-        else
+        //else
 #endif /* HAVE_SHAPE */
-        {
-          name = "(Unknown event)";
-          extra = g_strdup_printf ("type: %d", event->xany.type);
-        }
+        //{
+        //  name = "(Unknown event)";
+        //  extra = g_strdup_printf ("type: %d", event->xany.type);
+        //}
       break;
     }
 
@@ -3302,11 +3302,11 @@ meta_spew_event (MetaDisplay *display,
   else
     winname = g_strdup_printf ("0x%lx", event->xany.window);
 
-  meta_topic (META_DEBUG_EVENTS,
-              "%s on %s%s %s %sserial %lu\n", name, winname,
-              extra ? ":" : "", extra ? extra : "",
-              event->xany.send_event ? "SEND " : "",
-              event->xany.serial);
+  //meta_topic (META_DEBUG_EVENTS,
+  //            "%s on %s%s %s %sserial %lu\n", name, winname,
+  //            extra ? ":" : "", extra ? extra : "",
+  //            event->xany.send_event ? "SEND " : "",
+  //            event->xany.serial);
 
   g_free (winname);
 
